@@ -12,11 +12,12 @@ struct Stuff {
   let index: Int
   let title: String
 
-  init?(data: NSData) {
+  init?(data: Data) {
     do {
-      guard let json = try NSJSONSerialization.jsonObject(with: data) as? [String: AnyObject],
-        index = json["index"] as? Int,
-        title = json["title"] as? String
+      guard
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        let index = json["index"] as? Int,
+        let title = json["title"] as? String
         else {
           print("Failed to build struct from JSON: \(data)")
           return nil
@@ -58,7 +59,7 @@ class ViewController: UIViewController {
 
   func updateOnMainThread(local: Bool, text: String) {
     // update UI on main thread
-    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+    DispatchQueue.main.async(execute: { () -> Void in
       if local {
         self.localLabel.text = text
       } else {
@@ -69,20 +70,19 @@ class ViewController: UIViewController {
 
   func getStuff(local: Bool) {
 
-    let url = NSURL(string: local ? "http://localhost:8080/" : "https://morning-refuge-60368.herokuapp.com")!
-    let request = NSMutableURLRequest(url: url)
+    let url = URL(string: local ? "http://localhost:8080/" : "https://morning-refuge-60368.herokuapp.com")!
+    var request = URLRequest(url: url)
     request.httpMethod = "GET"
     // request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-    let session = NSURLSession.shared()
 
     // setup the task
-    let task = session.dataTask(with: request) { (data, response, error) in
-      guard let response = response as? NSHTTPURLResponse else { return }
+    let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
+      guard let response = response as? HTTPURLResponse else { return }
       self.parseResponse(local: local, response: response)
 
       guard let theData = data else { return }
       guard let stuff = Stuff(data: theData) else {
-        print("DATA ERROR: ", String(data: theData, encoding: NSUTF8StringEncoding))
+        print("DATA ERROR: ", String(data: theData, encoding: String.Encoding.utf8) ?? "unknown")
         return
       }
 
@@ -95,7 +95,7 @@ class ViewController: UIViewController {
     task.resume()
   }
 
-  func parseResponse(local: Bool, response: NSHTTPURLResponse) {
+  func parseResponse(local: Bool, response: HTTPURLResponse) {
     let status = response.statusCode == 200 ? "OK" : String(response.statusCode)
     print("Response \(status) (\(local ? "local" : "remote"))", separator: " ")
     if let server = response.allHeaderFields["Server"] {
