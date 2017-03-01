@@ -70,7 +70,7 @@ class ViewController: UIViewController {
 
   func getStuff(local: Bool) {
 
-    let url = URL(string: local ? "http://localhost:8080/" : "https://morning-refuge-60368.herokuapp.com")!
+    let url = URL(string: local ? "http://localhost:8080/" : "https://example.herokuapp.com")!
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
     // request.addValue("application/json", forHTTPHeaderField: "Content-Type")
