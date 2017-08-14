@@ -8,28 +8,9 @@
 
 import UIKit
 
-struct Stuff {
+struct Stuff: Codable {
   let index: Int
   let title: String
-
-  init?(data: Data) {
-    do {
-      guard
-        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-        let index = json["index"] as? Int,
-        let title = json["title"] as? String
-        else {
-          print("Failed to build struct from JSON: \(data)")
-          return nil
-      }
-      self.index = index
-      self.title = title
-
-    } catch let error as NSError {
-      print("Stuff(data:) error converting from json: \(error.localizedDescription)\n")
-      return nil
-    }
-  }
 }
 
 class ViewController: UIViewController {
@@ -69,7 +50,6 @@ class ViewController: UIViewController {
   }
 
   func getStuff(local: Bool) {
-
     let url = URL(string: local ? "http://localhost:8080/" : "http://swiftserverrepo-cdf3d3a7.b856219f.svc.dockerapp.io:8080")!
     var request = URLRequest(url: url)
     request.httpMethod = "GET"
@@ -77,18 +57,20 @@ class ViewController: UIViewController {
 
     // setup the task
     let task = URLSession.shared.dataTask(with: request) { (data, response, error) in
-      guard let response = response as? HTTPURLResponse else { return }
+      guard
+        let response = response as? HTTPURLResponse,
+        let data = data else { return }
+
       self.parseResponse(local: local, response: response)
-
-      guard let theData = data else { return }
-      guard let stuff = Stuff(data: theData) else {
-        print("DATA ERROR: ", String(data: theData, encoding: String.Encoding.utf8) ?? "unknown")
-        return
+      let decoder = JSONDecoder()
+      do {
+        let stuff = try decoder.decode(Stuff.self, from: data)
+        print("DATA: \(stuff)")
+        self.updateOnMainThread(local: local, text: "Result is: \(stuff.index) – \(stuff.title)")
+        print()
+      } catch {
+        print("Failed to decode \(data)")
       }
-
-      print("DATA: \(stuff)")
-      self.updateOnMainThread(local: local, text: "Result is: \(stuff.index) – \(stuff.title)")
-      print()
     }
 
     // run the task
